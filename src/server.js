@@ -6,6 +6,7 @@ import {
   verifySignature,
 } from "./githubClient.js";
 import {
+  addGithubIdCustomField,
   createIssue,
   createProject,
   findProjectByName,
@@ -32,16 +33,18 @@ app.get("/", async (req, res) => {
   const existing = await findProjectByName(repo);
   let data = null;
   if (!existing) {
-    console.log("Project does not exist creating new!");
+    console.log("ℹ️  Project does not exist creating new!");
     data = await createProject(repo);
-    console.log("Project created successfully!", data.id);
+    console.log("✅ Project created successfully with id: ", data.id);
+    await addGithubIdCustomField(data.id);
+
     issues.map(async (issue) => {
       const result = await createIssue(data.id, issue);
-      console.log("Issue imported successfully!", issue.title);
+      console.log("✅ Issue imported successfully with title: ", issue.title);
     });
     res.send(existing);
   } else {
-    console.error("Project already exists import aborted!");
+    console.log("❌ Project already exists import aborted!");
     res.send("Project already exists import aborted!");
   }
 });
@@ -49,12 +52,12 @@ app.get("/", async (req, res) => {
 app.get("/webhook", async (req, res) => {
   const webhook = await findWebhookByTargetUrl(repo, owner, targetUrl);
   if (webhook) {
-    console.log("Webhook already exsiting!");
-    res.send("Webhook already exsiting!");
+    console.log("ℹ️  Webhook already exsiting!");
+    res.send("ℹ️  Webhook already exsiting!");
   } else {
-    console.log("Creating new webhook");
+    console.log("ℹ️  Creating new webhook");
     const result = await createWebhook(repo, owner, targetUrl, secret);
-    console.log(result);
+    console.log("✅ Webhook created successfully!");
     res.send(result);
   }
 });
@@ -68,14 +71,14 @@ app.post("/issue-updated", async (req, res) => {
     const action = req.body.action;
     const issue = req.body.issue;
 
-    console.log("Sync called", action);
+    console.log("ℹ️  Issue event triggered with action: ", action);
 
     const result = await syncIsseToYouTrack(issue, repo);
-    // res.send(result);
+    console.log("✅ Issue sync done successfully!", result);
   }
   res.sendStatus(200);
 });
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log(`✅ Example app listening on port ${port}`);
 });

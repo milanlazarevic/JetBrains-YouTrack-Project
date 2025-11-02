@@ -7,7 +7,14 @@ const headers = {
   "Content-Type": "application/json",
   Accept: "application/json",
 };
-
+/**
+ * Find YouTrack project by project name. If it exists it is returned else
+ * null is returned. Used when we want if there is already project with the same name.
+ * In that case we're skipping creation of project.
+ *
+ * @param {string} projectName - Project name.
+ * @returns {object} Project or null
+ */
 async function findProjectByName(projectName) {
   const res = await axios.get(
     `${youTrackUrl}/admin/projects?fields=id,name,shortName`,
@@ -21,7 +28,14 @@ async function findProjectByName(projectName) {
 
   return existing || null;
 }
-
+/**
+ * Created YouTrack new YouTrack project for the given name.
+ * Both parameters should be unique if not error will be thrown.
+ *
+ * @param {string} projectName - Project name.
+ * @param {string} shortName - Short name.
+ * @returns {object} Project
+ */
 async function createProject(projectName, shortName = "YT") {
   const body = {
     name: projectName,
@@ -32,14 +46,26 @@ async function createProject(projectName, shortName = "YT") {
     const res = await axios.post(`${youTrackUrl}/admin/projects`, body, {
       headers,
     });
-    console.log(`✅ Kreiran novi projekat: ${res.data.name}`);
+    console.log(`✅ New project created: ${projectName}`);
     return res.data;
   } catch (error) {
-    console.log(error.data);
+    console.log(
+      "❌ Error occured when creating YouTrack project. ",
+      error?.data
+    );
     throw error;
   }
 }
 
+/**
+ * Created YouTrack issue body from the github issue.
+ * Project id is used to determine to which YouTrack project
+ * issue will be attached.
+ *
+ * @param {string} projectId - Project id.
+ * @param {string} githubIssue - Github issue body to extract data from.
+ * @returns {object} YouTrack issue.
+ */
 function createIssueBody(projectId, githubIssue) {
   const body = {
     project: { id: projectId },
@@ -88,9 +114,16 @@ function createIssueBody(projectId, githubIssue) {
   return body;
 }
 
+/**
+ * When we want to sync Github issues with YouTrack we must add custom field
+ * called GithubId that will store issue id from github so we can find issue that is
+ * updated later. We create new custom field and attach it to the project.
+ *
+ * @param {string} projectId - Project id.
+ * @returns {number} YouTrack issue field id.
+ */
 async function addGithubIdCustomField(projectId) {
   try {
-    // 1. Kreiraj field (ili ignoriši ako postoji)
     let fieldId;
     try {
       const res = await axios.post(
@@ -104,10 +137,9 @@ async function addGithubIdCustomField(projectId) {
         { headers }
       );
       fieldId = res.data.id;
-      console.log("✅ Field created:", fieldId);
+      console.log("✅ Field created with field id:", fieldId);
     } catch (error) {
       if (error.response?.data.error_description?.includes("already exists")) {
-        // Field već postoji, dobavi njegov ID
         const existingFields = await axios.get(
           `${youTrackUrl}/admin/customFieldSettings/customFields?fields=id,name`,
           { headers }
@@ -122,7 +154,6 @@ async function addGithubIdCustomField(projectId) {
       }
     }
 
-    // 2. ATTACH field na projekat (OVO TI FALI!)
     try {
       await axios.post(
         `${youTrackUrl}/admin/projects/${projectId}/customFields`,
@@ -147,49 +178,83 @@ async function addGithubIdCustomField(projectId) {
 
     return fieldId;
   } catch (error) {
-    console.error("❌ Error with custom field:");
-    console.error("Status:", error.response?.status);
-    console.error("Error data:", JSON.stringify(error.response?.data, null, 2));
+    console.log("❌ Error with custom field:");
+    console.log("❌ Status:", error.response?.status);
+    console.log(
+      "❌ Error data:",
+      JSON.stringify(error.response?.data, null, 2)
+    );
     throw error;
   }
 }
 
-async function createIssue(projectId, issue, isInitalCreation = true) {
-  if (isInitalCreation) await addGithubIdCustomField(projectId);
-
+/**
+ * Created YouTrack issue from the github issue.
+ * Project id is used to determine to which YouTrack project
+ * issue will be attached. Using createIssueBody to generate YT issue body from
+ * GitHub issue.
+ *
+ * @param {string} projectId - Project id.
+ * @param {string} issue - Github issue body to extract data from.
+ * @returns {object} YouTrack issue.
+ */
+async function createIssue(projectId, issue) {
   const body = createIssueBody(projectId, issue);
   try {
     const res = await axios.post(`${youTrackUrl}/issues`, body, {
       headers,
     });
-    console.log(`✅ Kreiran novi issue: ${res.data}`);
+    console.log(`✅ New issue created with id: ${res.data.id}`);
     return res.data;
   } catch (error) {
-    console.error("❌ Error creating issue:");
-    console.error("Status:", error.response?.status);
-    console.error("Error data:", JSON.stringify(error.response?.data, null, 2));
-    console.error("Request body:", JSON.stringify(body, null, 2));
+    console.log("❌ Error creating issue:");
+    console.log("❌ Status:", error.response?.status);
+    console.log(
+      "❌ Error data:",
+      JSON.stringify(error.response?.data, null, 2)
+    );
+    console.log("❌ Request body:", JSON.stringify(body, null, 2));
     throw error;
   }
 }
 
+/**
+ * Update YouTrack issue from the github issue.
+ * When github webhook sends request this method might be called to update existing issue
+ * on YouTrack.
+ *
+ * @param {string} projectId - Project id.
+ * @param {string} issue - Github issue body to extract data from.
+ * @param {string} issueId - YouTrack issue id.
+ * @returns {object} YouTrack issue.
+ */
 async function updateIssueById(projectId, issue, issueId) {
   const body = createIssueBody(projectId, issue);
   try {
     const res = await axios.post(`${youTrackUrl}/issues/${issueId}`, body, {
       headers,
     });
-    console.log(`✅ Issue updated successfully: ${res.data}`);
     return res.data;
   } catch (error) {
-    console.error("❌ Error creating issue:");
-    console.error("Status:", error.response?.status);
-    console.error("Error data:", JSON.stringify(error.response?.data, null, 2));
-    console.error("Request body:", JSON.stringify(body, null, 2));
+    console.log("❌ Error creating issue:");
+    console.log("❌ Status:", error.response?.status);
+    console.log(
+      "❌ Error data:",
+      JSON.stringify(error.response?.data, null, 2)
+    );
+    console.log("❌ Request body:", JSON.stringify(body, null, 2));
     throw error;
   }
 }
 
+/**
+ * Find if there exists YouTrack issue that is linked with the given github id.
+ * If there is not that means new issue is created and if it exists it means
+ * old issue is updated.
+ *
+ * @param {string} githubId - github issue id.
+ * @returns {object} YouTrack issue or null.
+ */
 async function findYouTrackIssueByGithubId(githubId) {
   const query = `GitHubId: ${githubId}`;
   const res = await axios.get(`${youTrackUrl}/issues`, {
@@ -200,23 +265,29 @@ async function findYouTrackIssueByGithubId(githubId) {
         "id,idReadable,summary,description,project(name),customFields(name,value(name))",
     },
   });
-  console.log("ISSSUE", res.data);
 
   return res.data.length > 0 ? res.data[0] : null;
 }
 
+/**
+ * Determines which method will be called: Create new issue or update issue. Determinition is made
+ * with method findYouTrackIssueByGithubId. If there is not YouTrack issue that means new issue is created and if it exists it means
+ * old issue is updated.
+ *
+ * @param {string} issue - github issue.
+ * @param {string} repo - Repository to find project on YouTrack
+ * @returns {object} YouTrack issue or null.
+ */
 async function syncIsseToYouTrack(issue, repo) {
   const youTrackIssue = await findYouTrackIssueByGithubId(issue.id);
   const existingProject = await findProjectByName(repo);
   if (!youTrackIssue) {
     // new issue is created on github
     const result = await createIssue(existingProject.id, issue, false);
-    console.log("Issue created!", result);
     return result;
   } else {
     // existing issue is updated on github
     const result = updateIssueById(existingProject.id, issue, youTrackIssue.id);
-    console.log("Issue updated successfully!", result.data);
     return result;
   }
 }
@@ -229,4 +300,5 @@ export {
   createIssueBody,
   updateIssueById,
   syncIsseToYouTrack,
+  addGithubIdCustomField,
 };
