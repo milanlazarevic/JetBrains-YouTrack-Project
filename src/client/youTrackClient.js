@@ -93,6 +93,11 @@ function createIssueBody(projectId, githubIssue) {
     ],
   };
 
+  // TODO: this part is not yet finished because I needed to map github users to YT users. I should
+  // first create yt user from github user and it needed one more request to github to find fullname and email
+  // and other request to create YT user. I created the second method but didn't have time to finish it so I removed it
+  // and commented this if statement. But it is completely doable.
+
   // if (githubIssue.assignee) {
   //   body.customFields.push({
   //     $type: "SingleUserIssueCustomField",
