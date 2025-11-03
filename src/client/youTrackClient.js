@@ -13,7 +13,7 @@ const headers = {
  * In that case we're skipping creation of project.
  *
  * @param {string} projectName - Project name.
- * @returns {object} Project or null
+ * @returns {Promise<object>} Project or null
  */
 async function findProjectByName(projectName) {
   const res = await axios.get(
@@ -34,7 +34,7 @@ async function findProjectByName(projectName) {
  *
  * @param {string} projectName - Project name.
  * @param {string} shortName - Short name.
- * @returns {object} Project
+ * @returns {Promise<object>} Project
  */
 async function createProject(projectName, shortName = "YT") {
   const body = {
@@ -120,7 +120,7 @@ function createIssueBody(projectId, githubIssue) {
  * updated later. We create new custom field and attach it to the project.
  *
  * @param {string} projectId - Project id.
- * @returns {number} YouTrack issue field id.
+ * @returns {Promise<number>} YouTrack issue field id.
  */
 async function addGithubIdCustomField(projectId) {
   try {
@@ -196,7 +196,7 @@ async function addGithubIdCustomField(projectId) {
  *
  * @param {string} projectId - Project id.
  * @param {string} issue - Github issue body to extract data from.
- * @returns {object} YouTrack issue.
+ * @returns {Promise<object>} YouTrack issue.
  */
 async function createIssue(projectId, issue) {
   const body = createIssueBody(projectId, issue);
@@ -226,7 +226,7 @@ async function createIssue(projectId, issue) {
  * @param {string} projectId - Project id.
  * @param {string} issue - Github issue body to extract data from.
  * @param {string} issueId - YouTrack issue id.
- * @returns {object} YouTrack issue.
+ * @returns {Promise<object>} YouTrack issue.
  */
 async function updateIssueById(projectId, issue, issueId) {
   const body = createIssueBody(projectId, issue);
@@ -253,7 +253,7 @@ async function updateIssueById(projectId, issue, issueId) {
  * old issue is updated.
  *
  * @param {string} githubId - github issue id.
- * @returns {object} YouTrack issue or null.
+ * @returns {Promise<object>} YouTrack issue or null.
  */
 async function findYouTrackIssueByGithubId(githubId) {
   const query = `GitHubId: ${githubId}`;
@@ -276,7 +276,7 @@ async function findYouTrackIssueByGithubId(githubId) {
  *
  * @param {string} issue - github issue.
  * @param {string} repo - Repository to find project on YouTrack
- * @returns {object} YouTrack issue or null.
+ * @returns {Promise<object>} YouTrack issue or null.
  */
 async function syncIsseToYouTrack(issue, repo) {
   const youTrackIssue = await findYouTrackIssueByGithubId(issue.id);

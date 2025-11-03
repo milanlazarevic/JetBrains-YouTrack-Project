@@ -16,7 +16,7 @@ const octokit = new Octokit({
  * @param {string} repo - Repository name.
  * @param {string} owner - Repository owner.
  * @param {string} targetUrl - Url where github will send request after something happened.
- * @returns {object} if the webhook is created returns it if not returns undefined.
+ * @returns {Promise<object>} if the webhook is created returns it if not returns undefined.
  */
 async function findWebhookByTargetUrl(repo, owner, targetUrl) {
   try {
@@ -43,7 +43,7 @@ async function findWebhookByTargetUrl(repo, owner, targetUrl) {
  * @param {string} owner - Repository owner.
  * @param {string} targetUrl - Url where github will send request after something happened.
  * @param {string} secret - Secret string that will be used in hashing method.
- * @returns {object} Newly created webhook.
+ * @returns {Promise<object>} Newly created webhook.
  */
 async function createWebhook(repo, owner, targetUrl, secret) {
   try {
@@ -75,7 +75,7 @@ async function createWebhook(repo, owner, targetUrl, secret) {
  *
  * @param {string} repo - Repository name.
  * @param {string} owner - Repository owner.
- * @returns {issue[]} List of all issues found for the given attributes.
+ * @returns {Promise<issue[]>} List of all issues found for the given attributes.
  */
 async function getIssues(repo, owner) {
   const repoIssues = await octokit.paginate(
