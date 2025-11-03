@@ -39,6 +39,8 @@ YOUTRACK_TOKEN=...
 - Final example looks like this: `https://luc-public-url-seamus.ngrok-free.dev/issue-updated`
 2. 🛠️ How to Create a GitHub Webhook secret
 - Just enter random secret you want to use for hashing (e.g klsdfjksdjhskdhfjhsdfjkl)
+- `NOTE:` When you create webhook you will send this secret and webhook will use it when hashing requests to the server. So any updated inside .env file
+  while there is already created webhook with other secret will result in invalid signature. That means you need to watch for logs inside your github repository settings > webhooks > your webhook. It might be the reason of some weird bugs.
 3. 🛠️ How to Create a GitHub Personal Access Token
 - Go to GitHub.com > Settings > Developer Settings.
 - Click “Personal access tokens” → Tokens (classic)
